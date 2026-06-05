@@ -1,0 +1,38 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment & Secrets
+.env
+*.env
+
+# Data files (large, not for GitHub)
+data/raw/*.csv
+data/cleaned/*.csv
+data/engineered/*.csv
+data/synthetic/*.csv
+
+# ML Models (large binary files)
+ml/models/*.joblib
+ml/models/*.pkl
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store
+
+# Logs
+pipeline/logs/*.log
+pipeline/logs/*.json
+
+# Java / Maven
+backend/target/
+backend/.mvn/
+
+# Jupyter Notebooks (keep .py, not .ipynb for prod)
+*.ipynb
+.ipynb_checkpoints/
