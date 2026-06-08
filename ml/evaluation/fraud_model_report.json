@@ -1,0 +1,45 @@
+{
+  "model_name": "IsolationForest",
+  "version": "v1.0.0",
+  "trained_at": "2026-06-08 08:24:34",
+  "feature_cols": [
+    "amount",
+    "merchant_category",
+    "channel",
+    "hour_of_day",
+    "day_of_week",
+    "city",
+    "is_international",
+    "transactions_last_1h",
+    "transactions_last_24h",
+    "avg_txn_amount_30d",
+    "days_since_last_txn",
+    "account_age_days",
+    "num_failed_txns_24h",
+    "is_new_device"
+  ],
+  "test_metrics": {
+    "auc_roc": 0.9954,
+    "precision": 0.4928,
+    "recall": 0.9667,
+    "f1_score": 0.6528,
+    "fraud_caught_pct": 96.7
+  },
+  "feature_diffs": {
+    "amount": 1120.55,
+    "merchant_category": 31.55,
+    "channel": 67.89,
+    "hour_of_day": 29.95,
+    "day_of_week": 1.64,
+    "city": 3.04,
+    "is_international": 3150000000.0,
+    "transactions_last_1h": 358.03,
+    "transactions_last_24h": 144.91,
+    "avg_txn_amount_30d": 74.48,
+    "days_since_last_txn": 96.97,
+    "account_age_days": 64.44,
+    "num_failed_txns_24h": 1753.67,
+    "is_new_device": 1595.61
+  },
+  "model_path": "ml/models\\fraud_model_v1.0.0.joblib"
+}
