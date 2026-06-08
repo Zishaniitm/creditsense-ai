@@ -63,7 +63,10 @@ def load_data():
 def remove_duplicates(df):
     print("  [2/7] Removing duplicates...")
     before = len(df)
-    df = df.drop_duplicates().reset_index(drop=True)
+    # Round floats to 4 decimal places before dedup
+    # to catch near-identical rows from floating point noise
+    df_rounded = df.round(4)
+    df = df[~df_rounded.duplicated()].reset_index(drop=True)
     removed = before - len(df)
     print(f"         Removed: {removed:,} duplicate rows")
     return df
