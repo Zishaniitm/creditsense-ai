@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════
+#  CreditSense AI — Spring Boot Configuration
+# ═══════════════════════════════════════════════════════════
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: creditsense-backend
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5432/creditsense_db
+    username: creditsense_user
+    password: creditsense2024
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  # ── JPA ────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate        # never recreate — schema managed by schema.sql
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # ── Redis ──────────────────────────────────────────────────
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+  # ── Disable open session in view ───────────────────────────
+  mvc:
+    pathmatch:
+      use-suffix-pattern: false
+
+# ── JWT ──────────────────────────────────────────────────────
+jwt:
+  secret: CreditSenseAI_SuperSecretKey_2024_MustBe256BitsLong!!
+  expiration-ms: 900000         # 15 minutes
+  refresh-expiration-ms: 604800000  # 7 days
+
+# ── Flask ML Services ─────────────────────────────────────────
+ml-service:
+  url: http://localhost:5000
+
+fraud-service:
+  url: http://localhost:5001
+
+# ── Swagger ───────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# ── Logging ───────────────────────────────────────────────────
+logging:
+  level:
+    com.creditsense: DEBUG
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
