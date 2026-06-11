@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import com.creditsense.service.CacheService;
 
 @Service
 public class ApplicationService {
@@ -24,18 +25,21 @@ public class ApplicationService {
     private final UserRepository               userRepo;
     private final MLService                    mlService;
     private final ObjectMapper                 objectMapper;
+    private final CacheService                cacheService;
 
     public ApplicationService(LoanApplicationRepository applicationRepo,
-                               CreditAssessmentRepository assessmentRepo,
-                               UserRepository userRepo,
-                               MLService mlService,
-                               ObjectMapper objectMapper) {
-        this.applicationRepo = applicationRepo;
-        this.assessmentRepo  = assessmentRepo;
-        this.userRepo        = userRepo;
-        this.mlService       = mlService;
-        this.objectMapper    = objectMapper;
-    }
+                           CreditAssessmentRepository assessmentRepo,
+                           UserRepository userRepo,
+                           MLService mlService,
+                           ObjectMapper objectMapper,
+                           CacheService cacheService) {
+    this.applicationRepo = applicationRepo;
+    this.assessmentRepo  = assessmentRepo;
+    this.userRepo        = userRepo;
+    this.mlService       = mlService;
+    this.objectMapper    = objectMapper;
+    this.cacheService    = cacheService;
+}
 
     /**
      * Submit a loan application, run ML scoring, persist everything.
@@ -92,47 +96,55 @@ public class ApplicationService {
     }
 
     public Map<String, Object> getApplicationById(UUID applicationId,
-                                                   String userEmail) {
-        LoanApplication app = applicationRepo.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Application not found: " + applicationId));
-
-        User user = userRepo.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Applicants can only see their own applications
-        if (user.getRole() == User.Role.APPLICANT &&
-            !app.getUser().getUserId().equals(user.getUserId())) {
-            throw new RuntimeException("Access denied to this application");
-        }
-
-        Optional<CreditAssessment> assessment =
-                assessmentRepo.findByApplication(app);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("applicationId",  app.getApplicationId());
-        result.put("status",         app.getStatus());
-        result.put("loanAmount",     app.getLoanAmount());
-        result.put("loanPurpose",    app.getLoanPurpose());
-        result.put("submittedAt",    app.getSubmittedAt());
-
-        assessment.ifPresent(a -> {
-            result.put("riskScore",    a.getRiskScore());
-            result.put("riskCategory", a.getRiskCategory());
-            result.put("confidence",   a.getConfidence());
-            result.put("modelVersion", a.getModelVersion());
-            try {
-                if (a.getShapExplanation() != null) {
-                    result.put("explanation",
-                            objectMapper.readValue(a.getShapExplanation(), List.class));
-                }
-            } catch (Exception e) {
-                log.warn("Could not parse SHAP explanation JSON");
-            }
-        });
-
-        return result;
+                                               String userEmail) {
+    // Check cache first
+    Map<String, Object> cached = cacheService.get(applicationId.toString());
+    if (cached != null) {
+        return cached;
     }
+
+    LoanApplication app = applicationRepo.findById(applicationId)
+            .orElseThrow(() -> new RuntimeException(
+                    "Application not found: " + applicationId));
+
+    User user = userRepo.findByEmail(userEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    if (user.getRole() == User.Role.APPLICANT &&
+        !app.getUser().getUserId().equals(user.getUserId())) {
+        throw new RuntimeException("Access denied to this application");
+    }
+
+    Optional<CreditAssessment> assessment =
+            assessmentRepo.findByApplication(app);
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("applicationId",  app.getApplicationId());
+    result.put("status",         app.getStatus());
+    result.put("loanAmount",     app.getLoanAmount());
+    result.put("loanPurpose",    app.getLoanPurpose());
+    result.put("submittedAt",    app.getSubmittedAt());
+
+    assessment.ifPresent(a -> {
+        result.put("riskScore",    a.getRiskScore());
+        result.put("riskCategory", a.getRiskCategory());
+        result.put("confidence",   a.getConfidence());
+        result.put("modelVersion", a.getModelVersion());
+        try {
+            if (a.getShapExplanation() != null) {
+                result.put("explanation",
+                        objectMapper.readValue(a.getShapExplanation(), List.class));
+            }
+        } catch (Exception e) {
+            log.warn("Could not parse SHAP explanation JSON");
+        }
+    });
+
+    // Cache before returning
+    cacheService.put(applicationId.toString(), result);
+
+    return result;
+}
 
     public Map<String, Object> updateDecision(UUID applicationId,
                                                String decision,
@@ -156,6 +168,7 @@ public class ApplicationService {
         app.setReviewedAt(LocalDateTime.now());
         app.setDecisionAt(LocalDateTime.now());
         applicationRepo.save(app);
+        cacheService.evict(applicationId.toString());   // Invalidate cache on update
 
         log.info("Application {} {} by {}", applicationId, newStatus, officerEmail);
 
