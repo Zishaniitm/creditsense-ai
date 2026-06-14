@@ -11,6 +11,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/transactions")
 @Tag(name = "Transactions")
@@ -25,9 +28,22 @@ public class TransactionController {
 
     @PostMapping("/verify")
     @Operation(summary = "Submit a transaction for real-time fraud detection")
-    public ResponseEntity<ApiResponse<FraudCheckResponse>> verify(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> verify(
             @Valid @RequestBody TransactionRequest request) {
+
         FraudCheckResponse result = fraudService.checkTransaction(request);
-        return ResponseEntity.ok(ApiResponse.ok("Fraud check complete", result));
+
+        // Map to clean camelCase output — DTO uses snake_case @JsonProperty
+        // for deserializing FROM Flask, so we build a fresh response map here
+        Map<String, Object> response = new HashMap<>();
+        response.put("isFraudulent",         result.getIsFraudulent());
+        response.put("fraudProbability",     result.getFraudProbability());
+        response.put("anomalyScore",         result.getAnomalyScore());
+        response.put("riskLevel",            result.getRiskLevel());
+        response.put("action",               result.getAction());
+        response.put("modelVersion",         result.getModelVersion());
+        response.put("topAnomalousFeatures", result.getTopAnomalousFeatures());
+
+        return ResponseEntity.ok(ApiResponse.ok("Fraud check complete", response));
     }
 }
