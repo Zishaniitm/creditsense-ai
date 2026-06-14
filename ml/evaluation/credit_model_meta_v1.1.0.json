@@ -1,0 +1,29 @@
+{
+  "model_name": "XGBoost",
+  "version": "v1.1.0",
+  "trained_at": "2026-06-14 08:48:34",
+  "feature_cols": [
+    "age",
+    "monthly_income",
+    "debt_ratio",
+    "revolving_utilization",
+    "open_credit_lines",
+    "real_estate_loans",
+    "num_dependents",
+    "late_30_59_days",
+    "late_60_89_days",
+    "late_90_days",
+    "debt_to_income_ratio",
+    "payment_consistency_score",
+    "revolving_utilization_cat",
+    "late_payment_frequency",
+    "income_stability_flag"
+  ],
+  "test_metrics": {
+    "auc_roc": 0.8497,
+    "precision": 0.4743,
+    "recall": 0.1753,
+    "f1_score": 0.256
+  },
+  "model_path": "ml/models\\credit_model_v1.1.0.joblib"
+}

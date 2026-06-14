@@ -40,10 +40,10 @@ DB_URL    = (
     f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
     f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 )
-MODEL_PATH    = "ml/models/credit_model_v1.0.0.joblib"
-EXPLAINER_PATH= "ml/models/shap_explainer_v1.0.0.joblib"
+MODEL_PATH    = "ml/models/credit_model_v1.1.0.joblib"
+EXPLAINER_PATH= "ml/models/shap_explainer_v1.1.0.joblib"
 EVAL_DIR      = "ml/evaluation"
-MODEL_VERSION = "v1.0.0"
+MODEL_VERSION = "v1.1.0"
 
 FEATURE_COLS = [
     "age", "monthly_income", "debt_ratio", "revolving_utilization",
@@ -80,7 +80,17 @@ FEATURE_DISPLAY_NAMES = {
 def load_model_and_data():
     print("  [1/6] Loading model and sample data...")
     model = joblib.load(MODEL_PATH)
+
+    # CalibratedClassifierCV wraps the real tree model — extract it for SHAP
+    if hasattr(model, "calibrated_classifiers_"):
+        base_model = model.calibrated_classifiers_[0].estimator
+        print(f"         Detected calibrated model — using base estimator for SHAP")
+    else:
+        base_model = model
+
     print(f"         Model loaded: {MODEL_PATH}")
+    ...
+    # use base_model for explainer, but 'model' for predict_proba in demo section
 
     engine = create_engine(DB_URL)
     query  = f"""
@@ -91,20 +101,20 @@ def load_model_and_data():
     df = pd.read_sql(query, engine)
     engine.dispose()
     print(f"         Sample data: {df.shape[0]:,} rows loaded for SHAP analysis")
-    return model, df
+    return base_model, df
 
 
 # ══════════════════════════════════════════════════════════════════
 #  STEP 2 — BUILD SHAP EXPLAINER
-# ══════════════════════════════════════════════════════════════════
-def build_explainer(model, X_sample):
+# ════════════════════════════════════════════════════════════════════
+def build_explainer(base_model, X_sample):
     """
     TreeExplainer is the fastest and most accurate SHAP method for
     tree-based models like XGBoost and Random Forest.
     It computes exact Shapley values (not approximations).
     """
     print("\n  [2/6] Building SHAP TreeExplainer...")
-    explainer   = shap.TreeExplainer(model)
+    explainer   = shap.TreeExplainer(base_model)
     shap_values = explainer(X_sample)
 
     print(f"         SHAP values shape: {shap_values.values.shape}")
@@ -185,7 +195,7 @@ def plot_beeswarm(shap_values, X_sample):
 # ══════════════════════════════════════════════════════════════════
 #  STEP 5 — INDIVIDUAL WATERFALL PLOTS (3 samples)
 # ══════════════════════════════════════════════════════════════════
-def plot_individual_explanations(explainer, X_sample, model):
+def plot_individual_explanations(explainer, X_sample, base_model):
     """
     Waterfall chart explains ONE specific prediction:
     'Why did applicant #42 get a HIGH risk score?'
@@ -194,7 +204,7 @@ def plot_individual_explanations(explainer, X_sample, model):
     """
     print("\n  [5/6] Plotting individual SHAP waterfall explanations...")
 
-    y_prob = model.predict_proba(X_sample)[:, 1]
+    y_prob = base_model.predict_proba(X_sample)[:, 1]
 
     # Pick 3 representative samples: low risk, medium risk, high risk
     samples = {
@@ -315,11 +325,11 @@ def main():
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    model, X_sample = load_model_and_data()
-    explainer, shap_values = build_explainer(model, X_sample)
+    base_model, X_sample = load_model_and_data()
+    explainer, shap_values = build_explainer(base_model, X_sample)
     plot_global_importance(shap_values, X_sample)
     plot_beeswarm(shap_values, X_sample)
-    plot_individual_explanations(explainer, X_sample, model)
+    plot_individual_explanations(explainer, X_sample, base_model)
     importance = save_feature_importance_json(shap_values, X_sample)
 
     # Demo: explain one applicant the way the Flask API will

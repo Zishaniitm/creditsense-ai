@@ -30,7 +30,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ── Config ─────────────────────────────────────────────────────────────────
-MODEL_VERSION  = "v1.0.0"
+MODEL_VERSION  = "v1.1.0"
 MODEL_PATH     = f"ml/models/credit_model_{MODEL_VERSION}.joblib"
 SCALER_PATH    = f"ml/models/credit_scaler_{MODEL_VERSION}.joblib"
 EXPLAINER_PATH = f"ml/models/shap_explainer_{MODEL_VERSION}.joblib"
@@ -107,24 +107,25 @@ def build_feature_vector(data: dict) -> pd.DataFrame:
 
 def score_to_risk(probability: float) -> tuple[int, str]:
     """
-    Convert raw default probability to credit score (0-100) and category.
-    Score is INVERTED: higher score = safer applicant.
-    Industry convention: CIBIL/Experian use 300-900; we use 0-100 for simplicity.
+    Convert default probability to credit score and risk category.
+    Thresholds based on Indian banking/NBFC industry standards.
+    RBI guidelines classify NPA risk at 30%+ default probability.
     """
     credit_score = round((1 - probability) * 100, 1)
 
-    if probability < 0.30:
-        category = "LOW"
-    elif probability < 0.60:
-        category = "MEDIUM"
+    if probability < 0.25:
+        category = "LOW"       # Safe to approve
+    elif probability < 0.40:
+        category = "MEDIUM"    # Manual review required
     else:
-        category = "HIGH"
+        category = "HIGH"      # Reject / collateral required
 
     return credit_score, category
 
 
 def get_shap_explanation(X: pd.DataFrame, top_n: int = 5) -> list:
     """Compute SHAP values and return top N feature contributions."""
+    base_model = explainer.model
     shap_vals = explainer.shap_values(X)
 
     # Handle both 1D and 2D output

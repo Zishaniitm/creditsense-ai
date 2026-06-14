@@ -14,6 +14,7 @@ import sys
 
 if sys.platform.startswith("win"):
     sys.stdout.reconfigure(encoding="utf-8")
+from sklearn.calibration import CalibratedClassifierCV
 import pandas as pd
 import numpy as np
 import joblib
@@ -52,7 +53,7 @@ EVAL_DIR    = "ml/evaluation"
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(EVAL_DIR,  exist_ok=True)
 
-MODEL_VERSION = "v1.0.0"
+MODEL_VERSION = "v1.1.0"
 
 # Features we feed into the model (all engineered + raw financial features)
 FEATURE_COLS = [
@@ -253,7 +254,16 @@ def train_xgboost(X_train, y_train, X_val, y_val):
 # ══════════════════════════════════════════════════════════════════
 #  STEP 7 — SELECT BEST MODEL, EVALUATE ON TEST SET, SAVE
 # ══════════════════════════════════════════════════════════════════
-def select_and_save(models_metrics, X_test, y_test, X_test_scaled, scaler):
+def select_and_save(
+    models_metrics,
+    X_test,
+    y_test,
+    X_test_scaled,
+    X_val,
+    y_val,
+    X_val_scaled,
+    scaler
+):
     print("\n  [6/7] Selecting best model by AUC-ROC on validation set...")
 
     lr_model,  lr_m  = models_metrics["Logistic Regression"]
@@ -273,14 +283,29 @@ def select_and_save(models_metrics, X_test, y_test, X_test_scaled, scaler):
         print(f"    {name:<25} {auc:.4f}  {bar}{flag}")
 
     best_name  = max(comparison, key=comparison.get)
-    best_model = {
+    best_model_raw = {
         "Logistic Regression": lr_model,
         "Random Forest":       rf_model,
         "XGBoost":             xgb_model
     }[best_name]
 
     use_scaled = best_name == "Logistic Regression"
-    X_test_input = X_test_scaled if use_scaled else X_test
+    X_test_input  = X_test_scaled if use_scaled else X_test
+    X_val_input   = X_val_scaled  if use_scaled else X_val
+
+    # ── Calibration (Platt Scaling) ─────────────────────────────────
+    # The raw model is well-RANKED (AUC=0.85) but probabilities are
+    # skewed toward high-risk due to SMOTE oversampling. CalibratedClassifierCV
+    # with sigmoid method (Platt scaling) remaps raw scores to true
+    # probabilities using the validation set, without retraining.
+    print("\n  [6.5/7] Calibrating probabilities (Platt Scaling)...")
+    calibrated_model = CalibratedClassifierCV(
+        best_model_raw, method='sigmoid', cv='prefit'
+    )
+    calibrated_model.fit(X_val_input, y_val)
+    print("         ✅ Calibration complete")
+
+    best_model = calibrated_model
 
     print(f"\n  [7/7] Final evaluation on HELD-OUT TEST SET...")
     test_metrics = evaluate(
@@ -414,8 +439,15 @@ def main():
     }
 
     best_model, best_name, test_metrics, meta = select_and_save(
-        models_metrics, X_test, y_test, X_test_scaled, scaler
-    )
+    models_metrics,
+    X_test,
+    y_test,
+    X_test_scaled,
+    X_val,
+    y_val,
+    X_val_scaled,
+    scaler
+)
 
     plot_roc_curves(models_metrics, X_test, y_test, X_test_scaled)
     register_model_in_db(meta)
