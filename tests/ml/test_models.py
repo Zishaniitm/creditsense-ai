@@ -106,9 +106,9 @@ def run_all():
     # ── Load models ────────────────────────────────────────────
     print("\n  [Module 1] Model Loading")
     try:
-        credit_model   = joblib.load("ml/models/credit_model_v1.1.0.joblib")
-        credit_scaler  = joblib.load("ml/models/credit_scaler_v1.1.0.joblib")
-        shap_explainer = joblib.load("ml/models/shap_explainer_v1.1.0.joblib")
+        credit_model   = joblib.load("ml/models/credit_model_v1.2.0.joblib")
+        credit_scaler  = joblib.load("ml/models/credit_scaler_v1.2.0.joblib")
+        shap_explainer = joblib.load("ml/models/shap_explainer_v1.2.0.joblib")
         fraud_model    = joblib.load("ml/models/fraud_model_v1.0.0.joblib")
         fraud_scaler   = joblib.load("ml/models/fraud_scaler_v1.0.0.joblib")
         check("All 5 model files loaded without error", True)
@@ -197,14 +197,14 @@ def run_all():
 
     # ── Model metadata ─────────────────────────────────────────
     print("\n  [Module 5] Model Metadata")
-    with open("ml/evaluation/credit_model_meta_v1.1.0.json") as f:
+    with open("ml/evaluation/credit_model_meta_v1.2.0.json") as f:
         meta = json.load(f)
     check("Credit model AUC-ROC >= 0.84",
           meta["test_metrics"]["auc_roc"] >= 0.84,
           f"Got: {meta['test_metrics']['auc_roc']}")
-    check("Credit model recall >= 0.15",
-          meta["test_metrics"]["recall"] >= 0.15,
-          f"Got: {meta['test_metrics']['recall']}")
+    check("Credit model recall >= 0.30 at operational threshold 0.30",
+          meta["operational_metrics"]["0.30"]["recall"] >= 0.30,
+          f"Got: {meta['operational_metrics']['0.30']['recall']}")
 
     with open("ml/evaluation/fraud_model_report.json") as f:
         fraud_meta = json.load(f)

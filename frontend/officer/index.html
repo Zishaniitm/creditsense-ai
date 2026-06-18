@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreditSense AI — Officer Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #F8FAFC; }
+    .navbar { background: #1A3557; }
+    .navbar-brand { color: white; font-weight: 700; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .stat-card { border-radius: 12px; padding: 20px; color: white; }
+    .badge-LOW    { background: #D1FAE5; color: #065F46; }
+    .badge-MEDIUM { background: #FEF3C7; color: #92400E; }
+    .badge-HIGH   { background: #FEE2E2; color: #991B1B; }
+    .table th { font-size: 0.8rem; text-transform: uppercase; color: #6B7280;
+                font-weight: 600; border-bottom: 2px solid #E5E7EB; }
+    .table td { vertical-align: middle; font-size: 0.9rem; }
+    .score-pill { font-weight: 700; font-size: 1rem; }
+    .modal-header { background: #1A3557; color: white; }
+    .shap-bar-container { height: 8px; background: #E5E7EB; border-radius: 4px; }
+    .shap-fill { height: 100%; border-radius: 4px; }
+    .section-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+                     color: #6B7280; letter-spacing: .5px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid px-4">
+    <span class="navbar-brand"><i class="bi bi-shield-check me-2"></i>CreditSense AI</span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-warning text-dark">LOAN OFFICER</span>
+      <span class="text-white-50 small" id="nav-user"></span>
+      <button class="btn btn-sm btn-outline-light" onclick="AUTH.logout()">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4" id="stats-row">
+    <div class="col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#2563EB,#1d4ed8)">
+        <div class="small opacity-75">Total Applications</div>
+        <div class="fs-2 fw-bold" id="stat-total">--</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#10B981,#059669)">
+        <div class="small opacity-75">Approved</div>
+        <div class="fs-2 fw-bold" id="stat-approved">--</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#F59E0B,#D97706)">
+        <div class="small opacity-75">Under Review</div>
+        <div class="fs-2 fw-bold" id="stat-review">--</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#EF4444,#DC2626)">
+        <div class="small opacity-75">Rejected</div>
+        <div class="fs-2 fw-bold" id="stat-rejected">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Applications Table -->
+  <div class="card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold mb-0">Loan Applications</h5>
+      <button class="btn btn-sm btn-outline-primary" onclick="loadStats()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+      </button>
+    </div>
+
+    <div id="alert" class="alert alert-danger d-none"></div>
+
+    <!-- Application ID Search -->
+    <div class="row g-2 mb-3">
+      <div class="col-md-8">
+        <input type="text" id="search-id" class="form-control form-control-sm"
+               placeholder="Enter Application ID to search...">
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-primary btn-sm w-100" onclick="searchApplication()">
+          <i class="bi bi-search me-1"></i>Search
+        </button>
+      </div>
+    </div>
+
+    <div id="loading" class="text-center py-4">
+      <div class="spinner-border text-primary"></div>
+      <div class="text-muted mt-2 small">Loading applications...</div>
+    </div>
+
+    <div id="table-section" class="d-none">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Application ID</th>
+            <th>Loan Amount</th>
+            <th>Purpose</th>
+            <th>Risk Score</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="app-table-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Application Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-file-earmark-text me-2"></i>Application Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
+      </div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script>
+  if (!AUTH.requireAuth()) throw new Error('Not authenticated');
+  if (!['OFFICER','ADMIN'].includes(AUTH.getRole())) AUTH.redirectByRole();
+
+  document.getElementById('nav-user').textContent = AUTH.getName();
+
+  const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+  let currentAppId  = null;
+
+  async function loadStats() {
+    try {
+      const res = await API.analytics.portfolio();
+      const d   = res.data;
+      document.getElementById('stat-total').textContent    = d.totalApplications || 0;
+      document.getElementById('stat-approved').textContent = d.approved || 0;
+      document.getElementById('stat-review').textContent   = d.underReview || 0;
+      document.getElementById('stat-rejected').textContent = d.rejected || 0;
+    } catch (e) {
+      console.warn('Stats unavailable (OFFICER role may lack admin access)');
+      ['stat-total','stat-approved','stat-review','stat-rejected']
+          .forEach(id => document.getElementById(id).textContent = '--');
+    }
+  }
+
+  async function searchApplication() {
+    const id = document.getElementById('search-id').value.trim();
+    if (!id) return;
+
+    document.getElementById('loading').classList.remove('d-none');
+    document.getElementById('table-section').classList.add('d-none');
+
+    try {
+      const res  = await API.applications.getById(id);
+      const data = res.data;
+      renderTable([data]);
+    } catch (e) {
+      document.getElementById('alert').textContent =
+          'Application not found. Check the ID and try again.';
+      document.getElementById('alert').classList.remove('d-none');
+      document.getElementById('loading').classList.add('d-none');
+    }
+  }
+
+  function renderTable(applications) {
+    const tbody = document.getElementById('app-table-body');
+    tbody.innerHTML = '';
+
+    applications.forEach(app => {
+      const cat   = app.riskCategory || 'MEDIUM';
+      const score = app.riskScore ? app.riskScore.toFixed(1) : '--';
+      tbody.innerHTML += `
+        <tr>
+          <td class="font-monospace small">${(app.applicationId||'').substring(0,13)}...</td>
+          <td>₹${(app.loanAmount||0).toLocaleString('en-IN')}</td>
+          <td>${app.loanPurpose || '--'}</td>
+          <td class="score-pill">${score}</td>
+          <td><span class="badge badge-${cat} px-2 py-1">${cat}</span></td>
+          <td><span class="badge bg-secondary">${app.status||'--'}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary"
+                    onclick="openDetail('${app.applicationId}')">
+              <i class="bi bi-eye me-1"></i>Review
+            </button>
+          </td>
+        </tr>`;
+    });
+
+    document.getElementById('loading').classList.add('d-none');
+    document.getElementById('table-section').classList.remove('d-none');
+  }
+
+  async function openDetail(appId) {
+    currentAppId = appId;
+    document.getElementById('modal-body').innerHTML =
+        '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    document.getElementById('modal-footer').innerHTML = '';
+    detailModal.show();
+
+    try {
+      const res  = await API.applications.getById(appId);
+      const data = res.data;
+      renderModalBody(data);
+      renderModalFooter(data);
+    } catch (e) {
+      document.getElementById('modal-body').innerHTML =
+          '<p class="text-danger p-3">Failed to load application details.</p>';
+    }
+  }
+
+  function renderModalBody(data) {
+    const cat  = data.riskCategory || 'MEDIUM';
+    const shapHtml = (data.explanation || []).slice(0, 5).map(feat => {
+      const isRisk   = feat.direction === 'increases_risk';
+      const barWidth = Math.min(Math.abs(feat.shap_value) * 200, 100);
+      return `
+        <div class="mb-2">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="fw-500">${feat.display_name}</small>
+            <small class="${isRisk ? 'text-danger' : 'text-success'}">
+              ${isRisk ? '▲ Risk' : '▼ Safe'} (SHAP: ${feat.shap_value.toFixed(4)})
+            </small>
+          </div>
+          <div class="shap-bar-container">
+            <div class="shap-fill ${isRisk ? 'bg-danger' : 'bg-success'}"
+                 style="width:${barWidth}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="section-label">AI Credit Assessment</div>
+          <div class="p-3 rounded" style="background:#F8FAFC">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div class="fs-2 fw-bold">${data.riskScore?.toFixed(1) || '--'}</div>
+              <span class="badge badge-${cat} fs-6">${cat} RISK</span>
+            </div>
+            <div class="small text-muted">
+              Default Probability: ${((data.defaultProbability||0)*100).toFixed(1)}%
+            </div>
+            <div class="small text-muted">
+              Model Confidence: ${((data.confidence||0)*100).toFixed(1)}%
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="section-label">Loan Details</div>
+          <table class="table table-sm table-borderless">
+            <tr><td class="text-muted small">Amount</td>
+                <td class="fw-500">₹${(data.loanAmount||0).toLocaleString('en-IN')}</td></tr>
+            <tr><td class="text-muted small">Purpose</td>
+                <td>${data.loanPurpose || '--'}</td></tr>
+            <tr><td class="text-muted small">Status</td>
+                <td><span class="badge bg-secondary">${data.status}</span></td></tr>
+            <tr><td class="text-muted small">Submitted</td>
+                <td class="small">${data.submittedAt ?
+                    new Date(data.submittedAt).toLocaleDateString('en-IN') : '--'}</td></tr>
+          </table>
+        </div>
+        <div class="col-12">
+          <div class="section-label">Why This Score? — SHAP Explanation</div>
+          ${shapHtml || '<p class="text-muted small">No explanation available.</p>'}
+        </div>
+        <div class="col-12">
+          <div class="section-label">Officer Notes</div>
+          <textarea id="officer-notes" class="form-control form-control-sm" rows="2"
+                    placeholder="Add decision notes..."></textarea>
+        </div>
+      </div>`;
+  }
+
+  function renderModalFooter(data) {
+    const isPending = ['SUBMITTED','UNDER_REVIEW'].includes(data.status);
+    document.getElementById('modal-footer').innerHTML = isPending ? `
+      <button class="btn btn-success" onclick="makeDecision('APPROVE')">
+        <i class="bi bi-check-circle me-1"></i>Approve
+      </button>
+      <button class="btn btn-danger ms-2" onclick="makeDecision('REJECT')">
+        <i class="bi bi-x-circle me-1"></i>Reject
+      </button>
+      <button class="btn btn-outline-secondary ms-auto" data-bs-dismiss="modal">
+        Cancel
+      </button>` :
+      `<span class="text-muted small">Decision already recorded: ${data.status}</span>
+       <button class="btn btn-outline-secondary ms-auto" data-bs-dismiss="modal">Close</button>`;
+  }
+
+  async function makeDecision(decision) {
+    const notes = document.getElementById('officer-notes')?.value || '';
+    try {
+      await API.applications.decide(currentAppId, decision, notes);
+      detailModal.hide();
+      document.getElementById('alert').textContent =
+          `Application ${decision}D successfully.`;
+      document.getElementById('alert').className = 'alert alert-success';
+      document.getElementById('alert').classList.remove('d-none');
+      setTimeout(() => document.getElementById('alert').classList.add('d-none'), 3000);
+    } catch (e) {
+      alert('Decision failed: ' + (e.response?.data?.message || e.message));
+    }
+  }
+
+  // Initialize
+  loadStats();
+  document.getElementById('loading').classList.add('d-none');
+  document.getElementById('table-section').classList.remove('d-none');
+  document.getElementById('app-table-body').innerHTML =
+      `<tr><td colspan="7" class="text-center text-muted py-4">
+         <i class="bi bi-search me-2"></i>
+         Enter an Application ID above to search and review.
+       </td></tr>`;
+</script>
+</body>
+</html>

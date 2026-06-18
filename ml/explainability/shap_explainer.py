@@ -40,10 +40,10 @@ DB_URL    = (
     f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
     f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 )
-MODEL_PATH    = "ml/models/credit_model_v1.1.0.joblib"
-EXPLAINER_PATH= "ml/models/shap_explainer_v1.1.0.joblib"
+MODEL_PATH    = "ml/models/credit_model_v1.2.0.joblib"
+EXPLAINER_PATH= "ml/models/shap_explainer_v1.2.0.joblib"
 EVAL_DIR      = "ml/evaluation"
-MODEL_VERSION = "v1.1.0"
+MODEL_VERSION = "v1.2.0"
 
 FEATURE_COLS = [
     "age", "monthly_income", "debt_ratio", "revolving_utilization",

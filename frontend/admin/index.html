@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CreditSense AI — Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #F8FAFC; }
+    .navbar { background: #1A3557; }
+    .navbar-brand { color: white; font-weight: 700; }
+    .kpi-card { border: none; border-radius: 12px; padding: 20px;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .kpi-value { font-size: 2rem; font-weight: 700; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; text-transform: uppercase;
+                 letter-spacing: .5px; }
+    .kpi-icon  { width: 48px; height: 48px; border-radius: 10px;
+                 display: flex; align-items: center; justify-content: center;
+                 font-size: 1.4rem; }
+    .chart-card { border: none; border-radius: 12px;
+                  box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid px-4">
+    <span class="navbar-brand"><i class="bi bi-shield-check me-2"></i>CreditSense AI</span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-danger">ADMIN</span>
+      <span class="text-white-50 small" id="nav-user"></span>
+      <button class="btn btn-sm btn-outline-light" onclick="AUTH.logout()">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-0">Portfolio Analytics</h4>
+      <p class="text-muted small mb-0">Real-time credit risk overview</p>
+    </div>
+    <button class="btn btn-outline-primary btn-sm" onclick="loadDashboard()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Total Applications</div>
+            <div class="kpi-value text-dark" id="kpi-total">--</div>
+          </div>
+          <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Approved</div>
+            <div class="kpi-value text-success" id="kpi-approved">--</div>
+          </div>
+          <div class="kpi-icon bg-success bg-opacity-10 text-success">
+            <i class="bi bi-check-circle"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Rejected</div>
+            <div class="kpi-value text-danger" id="kpi-rejected">--</div>
+          </div>
+          <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+            <i class="bi bi-x-circle"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Under Review</div>
+            <div class="kpi-value text-warning" id="kpi-review">--</div>
+          </div>
+          <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Approval Rate</div>
+            <div class="kpi-value text-primary" id="kpi-approval-rate">--%</div>
+          </div>
+          <div class="kpi-icon bg-info bg-opacity-10 text-info">
+            <i class="bi bi-percent"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="kpi-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="kpi-label">Avg Risk Score</div>
+            <div class="kpi-value text-dark" id="kpi-avg-score">--</div>
+          </div>
+          <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary">
+            <i class="bi bi-graph-up"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-4">
+
+    <!-- Application Status Pie -->
+    <div class="col-md-4">
+      <div class="chart-card card p-4">
+        <h6 class="fw-bold mb-3">Application Status Distribution</h6>
+        <canvas id="statusChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Approval Rate Bar -->
+    <div class="col-md-4">
+      <div class="chart-card card p-4">
+        <h6 class="fw-bold mb-3">Portfolio Overview</h6>
+        <canvas id="portfolioChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Risk Gauge -->
+    <div class="col-md-4">
+      <div class="chart-card card p-4">
+        <h6 class="fw-bold mb-3">Average Risk Score Gauge</h6>
+        <canvas id="gaugeChart" height="220"></canvas>
+        <div class="text-center mt-2">
+          <span class="fs-4 fw-bold" id="gauge-label">--</span>
+          <div class="text-muted small">Average Portfolio Risk Score</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Performance Card -->
+    <div class="col-md-6">
+      <div class="chart-card card p-4">
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-robot me-2 text-primary"></i>ML Model Performance
+        </h6>
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="p-3 bg-light rounded text-center">
+              <div class="fs-4 fw-bold text-primary">0.8497</div>
+              <div class="small text-muted">AUC-ROC Score</div>
+              <div class="badge bg-success mt-1">Above Target</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-light rounded text-center">
+              <div class="fs-4 fw-bold text-success">96.7%</div>
+              <div class="small text-muted">Fraud Recall</div>
+              <div class="badge bg-success mt-1">Excellent</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-light rounded text-center">
+              <div class="fs-4 fw-bold text-info">v1.1.0</div>
+              <div class="small text-muted">Active Model</div>
+              <div class="badge bg-primary mt-1">Calibrated</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-light rounded text-center">
+              <div class="fs-4 fw-bold text-warning">15</div>
+              <div class="small text-muted">Features Used</div>
+              <div class="badge bg-warning text-dark mt-1">SHAP Explained</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="col-md-6">
+      <div class="chart-card card p-4">
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-activity me-2 text-success"></i>System Health
+        </h6>
+        <div id="health-checks"></div>
+        <button class="btn btn-outline-secondary btn-sm mt-3"
+                onclick="checkHealth()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Check Services
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script>
+  if (!AUTH.requireAuth()) throw new Error('Not authenticated');
+  if (AUTH.getRole() !== 'ADMIN') AUTH.redirectByRole();
+
+  document.getElementById('nav-user').textContent = AUTH.getName();
+
+  let statusChart, portfolioChart, gaugeChart;
+
+  async function loadDashboard() {
+    try {
+      const res = await API.analytics.portfolio();
+      const d   = res.data;
+
+      // KPI Cards
+      document.getElementById('kpi-total').textContent         = d.totalApplications || 0;
+      document.getElementById('kpi-approved').textContent      = d.approved || 0;
+      document.getElementById('kpi-rejected').textContent      = d.rejected || 0;
+      document.getElementById('kpi-review').textContent        = d.underReview || 0;
+      document.getElementById('kpi-approval-rate').textContent = `${d.approvalRate || 0}%`;
+      document.getElementById('kpi-avg-score').textContent     = d.averageRiskScore || 0;
+      document.getElementById('gauge-label').textContent       = d.averageRiskScore || '--';
+
+      renderCharts(d);
+    } catch (e) {
+      console.error('Dashboard load failed:', e);
+    }
+  }
+
+  function renderCharts(d) {
+    const approved   = d.approved    || 0;
+    const rejected   = d.rejected    || 0;
+    const underReview = d.underReview || 0;
+
+    // Destroy existing charts
+    if (statusChart)    statusChart.destroy();
+    if (portfolioChart) portfolioChart.destroy();
+    if (gaugeChart)     gaugeChart.destroy();
+
+    // Status Pie Chart
+    statusChart = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Approved', 'Under Review', 'Rejected'],
+        datasets: [{
+          data: [approved, underReview, rejected],
+          backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+        cutout: '65%'
+      }
+    });
+
+    // Portfolio Bar Chart
+    portfolioChart = new Chart(document.getElementById('portfolioChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Approved', 'Under Review', 'Rejected'],
+        datasets: [{
+          label: 'Applications',
+          data: [approved, underReview, rejected],
+          backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales:  {
+          y: { beginAtZero: true, grid: { color: '#F3F4F6' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // Risk Score Gauge (using doughnut)
+    const avgScore = d.averageRiskScore || 50;
+    gaugeChart = new Chart(document.getElementById('gaugeChart'), {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [avgScore, 100 - avgScore],
+          backgroundColor: [
+            avgScore >= 70 ? '#10B981' : avgScore >= 40 ? '#F59E0B' : '#EF4444',
+            '#E5E7EB'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        plugins:   { legend: { display: false }, tooltip: { enabled: false } },
+        cutout:    '75%',
+        rotation:  -90,
+        circumference: 180
+      }
+    });
+  }
+
+  async function checkHealth() {
+    const services = [
+      { name: 'Spring Boot API',      url: 'http://localhost:8080/actuator/health' },
+      { name: 'ML Service (Flask)',   url: 'http://localhost:5000/health' },
+      { name: 'Fraud Service (Flask)',url: 'http://localhost:5001/health' },
+    ];
+
+    const container = document.getElementById('health-checks');
+    container.innerHTML = '<div class="text-muted small mb-2">Checking services...</div>';
+
+    const results = await Promise.allSettled(
+      services.map(s => axios.get(s.url, { timeout: 3000 }))
+    );
+
+    container.innerHTML = services.map((s, i) => {
+      const ok = results[i].status === 'fulfilled';
+      return `
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi ${ok ? 'bi-check-circle-fill text-success' :
+                               'bi-x-circle-fill text-danger'}"></i>
+          <span class="small">${s.name}</span>
+          <span class="badge ${ok ? 'bg-success' : 'bg-danger'} ms-auto">
+            ${ok ? 'Online' : 'Offline'}
+          </span>
+        </div>`;
+    }).join('');
+  }
+
+  // Initialize
+  loadDashboard();
+  checkHealth();
+</script>
+</body>
+</html>

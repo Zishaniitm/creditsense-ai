@@ -53,7 +53,7 @@ EVAL_DIR    = "ml/evaluation"
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(EVAL_DIR,  exist_ok=True)
 
-MODEL_VERSION = "v1.1.0"
+MODEL_VERSION = "v1.2.0"
 
 # Features we feed into the model (all engineered + raw financial features)
 FEATURE_COLS = [
@@ -235,7 +235,8 @@ def train_xgboost(X_train, y_train, X_val, y_val):
         early_stopping_rounds=50,
         random_state=42,
         n_jobs=-1,
-        verbosity=0
+        verbosity=0,
+        monotone_constraints="(0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0)"
     )
 
     xgb_model.fit(
@@ -314,6 +315,30 @@ def select_and_save(
         use_scaled=use_scaled, X_scaled=X_test_scaled
     )
 
+    # ── Threshold sweep at OPERATIONAL cutoffs ─────────────────────
+    # The metrics above use evaluate()'s internal 0.5 threshold — but
+    # score_to_risk() in ml_service/app.py classifies risk at 0.25/0.40.
+    # That's what actually drives decisions, so check precision/recall there.
+    print("\n  [7.5/7] Threshold sweep at OPERATIONAL cutoffs...")
+    from sklearn.metrics import precision_score, recall_score, f1_score
+
+    X_test_for_proba = X_test_scaled if use_scaled else X_test
+    y_test_proba = best_model.predict_proba(X_test_for_proba)[:, 1]
+
+    operational_metrics = {}
+    for threshold in [0.25, 0.30, 0.35, 0.40, 0.50]:
+        pred_at_t = (y_test_proba >= threshold).astype(int)
+        p = precision_score(y_test, pred_at_t, zero_division=0)
+        r = recall_score(y_test, pred_at_t, zero_division=0)
+        f = f1_score(y_test, pred_at_t, zero_division=0)
+        operational_metrics[f"{threshold:.2f}"] = {
+            "precision": round(p, 4), "recall": round(r, 4), "f1_score": round(f, 4)
+        }
+        flag = "  ← LOW/MED boundary" if threshold == 0.25 else \
+               "  ← HIGH RISK cutoff" if threshold == 0.40 else ""
+        print(f"         threshold={threshold:.2f}  precision={p:.4f}  "
+              f"recall={r:.4f}  f1={f:.4f}{flag}")
+
     # Save model
     model_path = os.path.join(MODEL_DIR, f"credit_model_{MODEL_VERSION}.joblib")
     joblib.dump(best_model, model_path)
@@ -331,6 +356,7 @@ def select_and_save(
             "recall":    round(test_metrics["recall"], 4),
             "f1_score":  round(test_metrics["f1"], 4),
         },
+        "operational_metrics": operational_metrics,
         "model_path":    model_path,
     }
     meta_path = os.path.join(EVAL_DIR, f"credit_model_meta_{MODEL_VERSION}.json")

@@ -16,6 +16,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -32,54 +37,71 @@ public class SecurityConfig {
     }
 
     @Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http
-        .csrf(AbstractHttpConfigurer::disable)
-        .formLogin(AbstractHttpConfigurer::disable)
-        .httpBasic(AbstractHttpConfigurer::disable)
-        .sessionManagement(s ->
-            s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers(
-                "/api/v1/auth/**",
-                "/swagger-ui/**",
-                "/swagger-ui.html",
-                "/api-docs/**",
-                "/actuator/health"
-            ).permitAll()
-            .requestMatchers(
-                "/api/v1/analytics/**",
-                "/api/v1/ml/retrain"
-            ).hasRole("ADMIN")
-            .requestMatchers(
-                "/api/v1/applications/*/score",
-                "/api/v1/applications/*/decision",
-                "/api/v1/transactions/verify"
-            ).hasAnyRole("OFFICER", "ADMIN")
-            .anyRequest().authenticated()
-        )
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "null"
+        ));
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(false);
+        config.setMaxAge(3600L);
 
-        .exceptionHandling(ex -> ex
-            .authenticationEntryPoint((request, response, authException) -> {
-                response.setStatus(401);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                    "{\"success\":false,\"message\":\"Unauthorized — valid JWT required\",\"data\":null}"
-                );
-            })
-            .accessDeniedHandler((request, response, accessDeniedException) -> {
-                response.setStatus(403);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                    "{\"success\":false,\"message\":\"Access denied — insufficient role\",\"data\":null}"
-                );
-            })
-        )
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
 
-        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .sessionManagement(s ->
+                s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/v1/auth/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/api-docs/**",
+                    "/actuator/health"
+                ).permitAll()
+                .requestMatchers(
+                    "/api/v1/analytics/**",
+                    "/api/v1/ml/retrain"
+                ).hasRole("ADMIN")
+                .requestMatchers(
+                    "/api/v1/applications/*/score",
+                    "/api/v1/applications/*/decision",
+                    "/api/v1/transactions/verify"
+                ).hasAnyRole("OFFICER", "ADMIN")
+                .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.getWriter().write(
+                        "{\"success\":false,\"message\":\"Unauthorized" +
+                        " \u2014 valid JWT required\",\"data\":null}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(403);
+                    response.setContentType("application/json");
+                    response.getWriter().write(
+                        "{\"success\":false,\"message\":\"Access denied" +
+                        " \u2014 insufficient role\",\"data\":null}");
+                })
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
-}
+        return http.build();
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -30,7 +30,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ── Config ─────────────────────────────────────────────────────────────────
-MODEL_VERSION  = "v1.1.0"
+MODEL_VERSION  = "v1.2.0"
 MODEL_PATH     = f"ml/models/credit_model_{MODEL_VERSION}.joblib"
 SCALER_PATH    = f"ml/models/credit_scaler_{MODEL_VERSION}.joblib"
 EXPLAINER_PATH = f"ml/models/shap_explainer_{MODEL_VERSION}.joblib"

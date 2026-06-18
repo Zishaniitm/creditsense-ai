@@ -2,91 +2,91 @@
   {
     "feature": "payment_consistency_score",
     "display_name": "Payment Consistency Score",
-    "mean_shap": 0.430104,
+    "mean_shap": 0.559728,
     "rank": 1
   },
   {
     "feature": "revolving_utilization",
     "display_name": "Revolving Credit Utilization",
-    "mean_shap": 0.377748,
+    "mean_shap": 0.457511,
     "rank": 2
-  },
-  {
-    "feature": "late_payment_frequency",
-    "display_name": "Late Payment Frequency",
-    "mean_shap": 0.061568,
-    "rank": 3
-  },
-  {
-    "feature": "revolving_utilization_cat",
-    "display_name": "Credit Utilization Category",
-    "mean_shap": 0.059147,
-    "rank": 4
-  },
-  {
-    "feature": "real_estate_loans",
-    "display_name": "Real Estate Loans Count",
-    "mean_shap": 0.053255,
-    "rank": 5
   },
   {
     "feature": "age",
     "display_name": "Applicant Age",
-    "mean_shap": 0.05067,
-    "rank": 6
+    "mean_shap": 0.051282,
+    "rank": 3
+  },
+  {
+    "feature": "late_payment_frequency",
+    "display_name": "Late Payment Frequency",
+    "mean_shap": 0.048208,
+    "rank": 4
+  },
+  {
+    "feature": "revolving_utilization_cat",
+    "display_name": "Credit Utilization Category",
+    "mean_shap": 0.047428,
+    "rank": 5
   },
   {
     "feature": "late_30_59_days",
     "display_name": "Payments 30-59 Days Late",
-    "mean_shap": 0.043919,
+    "mean_shap": 0.04549,
+    "rank": 6
+  },
+  {
+    "feature": "real_estate_loans",
+    "display_name": "Real Estate Loans Count",
+    "mean_shap": 0.035021,
     "rank": 7
   },
   {
     "feature": "debt_ratio",
     "display_name": "Debt Ratio",
-    "mean_shap": 0.027359,
+    "mean_shap": 0.023424,
     "rank": 8
-  },
-  {
-    "feature": "debt_to_income_ratio",
-    "display_name": "Debt-to-Income Ratio",
-    "mean_shap": 0.018855,
-    "rank": 9
   },
   {
     "feature": "num_dependents",
     "display_name": "Number of Dependents",
-    "mean_shap": 0.014841,
-    "rank": 10
+    "mean_shap": 0.018492,
+    "rank": 9
   },
   {
-    "feature": "late_60_89_days",
-    "display_name": "Payments 60-89 Days Late",
-    "mean_shap": 0.014265,
-    "rank": 11
+    "feature": "debt_to_income_ratio",
+    "display_name": "Debt-to-Income Ratio",
+    "mean_shap": 0.016746,
+    "rank": 10
   },
   {
     "feature": "open_credit_lines",
     "display_name": "Number of Open Credit Lines",
-    "mean_shap": 0.009364,
-    "rank": 12
-  },
-  {
-    "feature": "monthly_income",
-    "display_name": "Monthly Income (\u20b9)",
-    "mean_shap": 0.007666,
-    "rank": 13
+    "mean_shap": 0.014467,
+    "rank": 11
   },
   {
     "feature": "late_90_days",
     "display_name": "Payments 90+ Days Late",
-    "mean_shap": 0.007144,
+    "mean_shap": 0.014256,
+    "rank": 12
+  },
+  {
+    "feature": "late_60_89_days",
+    "display_name": "Payments 60-89 Days Late",
+    "mean_shap": 0.012831,
+    "rank": 13
+  },
+  {
+    "feature": "monthly_income",
+    "display_name": "Monthly Income (\u20b9)",
+    "mean_shap": 0.005881,
     "rank": 14
   },
   {
     "feature": "income_stability_flag",
     "display_name": "Income Stability Flag",
-    "mean_shap": 0.002189,
+    "mean_shap": 0.003874,
     "rank": 15
   }
 ]
