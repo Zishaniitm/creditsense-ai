@@ -1,0 +1,78 @@
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: creditsense-postgres
+    environment:
+      POSTGRES_DB: creditsense_db
+      POSTGRES_USER: creditsense_user
+      POSTGRES_PASSWORD: creditsense2024
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/docker/postgres-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"   # host:5433 to avoid colliding with your existing local Postgres on 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creditsense_user -d creditsense_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: creditsense-redis
+    ports:
+      - "6379:6379"
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: ml_service/Dockerfile
+    container_name: creditsense-ml-service
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  fraud-service:
+    build:
+      context: .
+      dockerfile: fraud_service/Dockerfile
+    container_name: creditsense-fraud-service
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend/creditsense-backend
+    container_name: creditsense-backend
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      ML_SERVICE_URL: http://ml-service:5000
+      FRAUD_SERVICE_URL: http://fraud-service:5001
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ml-service:
+        condition: service_started
+      fraud-service:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: creditsense-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
