@@ -40,3 +40,18 @@ decrease across pcs=0→100 with no exceptions. Test AUC held at 0.8481
 sweep persisted in credit_model_meta_v1.2.0.json. test_models.py updated
 to check recall at the 0.30 operational threshold instead of the unused
 0.5 generic cutoff — 17/17 tests passing.
+
+## [v1.0.0] Final Release Status — All Critical Issues Resolved
+
+| Issue | Status |
+|---|---|
+| Credit model calibration bias | ✅ Fixed v1.1.0 — Platt Scaling |
+| SHAP direction bug (pcs=90) | ✅ Fixed v1.2.0 — monotonic constraint |
+| Duplicate rows in training data | ✅ Fixed — pandas drop_duplicates |
+| DB loader timeout (30min) | ✅ Fixed — bulk insert, chunksize=2000 |
+| JSON snake_case mapping bug | ✅ Fixed — @JsonProperty annotations |
+| Lombok annotation processor | ✅ Fixed — removed Lombok, plain Java |
+| System Health showing Spring Boot offline | ✅ Fixed — actuator dependency |
+| Auth page CORS silent failure | ✅ Fixed — api.js script tag added |
+| Admin bcrypt hash corruption | ✅ Fixed — Python-direct DB update |
+| payment_consistency_score SHAP non-monotonic | ✅ Fixed v1.2.0 |
