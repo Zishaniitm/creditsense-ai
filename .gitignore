@@ -32,4 +32,4 @@ backend/.mvn/
 
 # Jupyter Notebooks (keep .py, not .ipynb for prod)
 *.ipynb
-.ipynb_checkpoints/
+.ipynb_checkpoints/backups/
