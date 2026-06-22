@@ -16,9 +16,6 @@ data/cleaned/*.csv
 data/engineered/*.csv
 data/synthetic/*.csv
 
-# ML Models (large binary files)
-ml/models/*.joblib
-ml/models/*.pkl
 
 # IDE
 .vscode/
